@@ -45,14 +45,15 @@ class BitcoinDownloader:
 		while parseQueue: # Tests emptiness
 			(nextAddr, depth) = parseQueue.pop(0) 
 			if VERBOSE: print "Processing ", nextAddr
-			count += 1
 			sources = self.getSources(nextAddr) # Minor optimization possibility here
 			if depthMode and depth < maxx:
 				for s in sources:
+					count += 1
 					parseQueue.append( (s, depth+1) )
 			elif (not depthMode):
 				while sources and count < maxx:
 					s = sources.pop(0)
+					count += 1
 					parseQueue.append( (s, depth+1) )
 
 		self.saveData()
@@ -78,7 +79,11 @@ class BitcoinDownloader:
 			inAddrs = []
 			ipts = tx["inputs"]
 			for i in ipts:
-				inAddrs.append(i["prev_out"]["addr"])
+				try:
+					inAddrs.append(i["prev_out"]["addr"])
+				except KeyError:
+					# Newly generated coins have no source
+					pass
 			if addr not in inAddrs:
 				# if addr in inAddrs, then this transaction went from addr to children
 				# if addr not in inAddrs, then this transaction went from parents to addr
@@ -141,7 +146,7 @@ def main():
 	MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
 	DATAFILE = HOMEDIR + "/rawdata.pkl"
 	bd = BitcoinDownloader(DATAFILE)
-	bd.BFS(MY_ADDR, 50, False)
+	bd.BFS(MY_ADDR, 5, True)
 
 if __name__ == '__main__':
 	main()
