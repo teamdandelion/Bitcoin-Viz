@@ -4,33 +4,13 @@ the transaction history to find the history of the bitcoins. Can search either t
 specified recursion depth or specificed number of addresses.
 """
 import cPickle as pickle
-import datetime, json, urllib2, os
+import datetime, json, urllib2, os, time
 
-MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
+VERBOSE = True
 DLS_TO_SAVE   = 10 # how often do we back up our data file 
 REQUEST_TIMER = 5  # how long to wait between sending api requests
 LAST_REQUEST = 0
 HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz"
-
-def testDownloader():
-	testFile = HOMEDIR + "/testData.pkl"
-	with open(testFile, "w") as f:
-		pass # overwrites the file
-
-	testBD = BitcoinDownloader(HOMEDIR + "/testData.pkl")
-	testAddr = "1N88NAZ8Mbu3ZWXfkGkmVYGBabnRFiJ5kR"
-	testBD.BFS(testAddr, 1, True)
-	assert testBD.nDownloads == 5
-	addrs = [testAddr, 
-			"1NJrs7mFwmnMMHKC8EEqo3mL9pwzwgiiHp", 
-			"1F2ZwRXUry9r48FN5L9vBveQraURYArvZf",
-			"1Aa9FFaCKMAqWAGFXqt2jrqS53zeHJkDFW",
-			"12kk3unegcY1iyKir3LrFfhuAdyRQgj54i"]
-	for a in addrs:
-		assert a in testBD.addrMap
-
-	print "Tests passed!"
-	return True
 
 # ============================================================================ #
 
@@ -60,11 +40,13 @@ class BitcoinDownloader:
 		# If not Depthmode: Max is taken as the number of nodes to explore
 		parseQueue = [(addr, 0)] # (Addr, Depth)
 		count = 0
+		if VERBOSE: print "Beginning BFS, max = ", maxx, " depthMode = ", depthMode
 
 		while parseQueue: # Tests emptiness
 			(nextAddr, depth) = parseQueue.pop(0) 
+			if VERBOSE: print "Processing ", nextAddr
 			count += 1
-			sources = self.getSources(nextAddr)
+			sources = self.getSources(nextAddr) # Minor optimization possibility here
 			if depthMode and depth < maxx:
 				for s in sources:
 					parseQueue.append( (s, depth+1) )
@@ -118,10 +100,48 @@ class BitcoinDownloader:
 # ============================================================================ #
 
 def downloadAddr(addr):
+	global LAST_REQUEST
+	timeDelta = time.time() - LAST_REQUEST
+	if timeDelta < REQUEST_TIMER:
+		sleepTime = REQUEST_TIMER - timeDelta
+		if VERBOSE: print "\t\tSleeping for ", sleepTime, " seconds"
+		time.sleep(sleepTime)
+
+	LAST_REQUEST = time.time()
+
 	url = "http://blockchain.info/rawaddr/" + addr
 	jsonStr = urllib2.urlopen(url).read()
 	data = json.loads(jsonStr)
 
 	return data
 
+def testDownloader():
 
+	testFile = HOMEDIR + "/testData.pkl"
+	with open(testFile, "w") as f:
+		pass # overwrites the file
+
+	testBD = BitcoinDownloader(HOMEDIR + "/testData.pkl")
+	testAddr = "1N88NAZ8Mbu3ZWXfkGkmVYGBabnRFiJ5kR"
+	testBD.BFS(testAddr, 1, True)
+	assert testBD.nDownloads == 5
+	addrs = [testAddr, 
+			"1NJrs7mFwmnMMHKC8EEqo3mL9pwzwgiiHp", 
+			"1F2ZwRXUry9r48FN5L9vBveQraURYArvZf",
+			"1Aa9FFaCKMAqWAGFXqt2jrqS53zeHJkDFW",
+			"12kk3unegcY1iyKir3LrFfhuAdyRQgj54i"]
+	for a in addrs:
+		assert a in testBD.addrMap
+
+	print "Tests passed!"
+	os.remove(testFile)
+	return True
+
+def main():
+	MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
+	DATAFILE = HOMEDIR + "/rawdata.pkl"
+	bd = BitcoinDownloader(DATAFILE)
+	bd.BFS(MY_ADDR, 50, False)
+
+if __name__ == '__main__':
+	main()
