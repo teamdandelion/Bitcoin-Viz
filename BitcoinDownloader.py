@@ -10,7 +10,7 @@ VERBOSE = True
 DLS_TO_SAVE   = 10 # how often do we back up our data file 
 REQUEST_TIMER = 5  # how long to wait between sending api requests
 LAST_REQUEST = 0
-HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz"
+HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz/"
 
 # ============================================================================ #
 
@@ -27,7 +27,6 @@ class BitcoinDownloader:
 			
 			newAddr = downloadAddr(addr)
 			self.addrMap[addr] = newAddr
-			self.addrList.append(newAddr)
 			self.nDownloads += 1
 
 			if self.nDownloads % DLS_TO_SAVE is 0:
@@ -39,31 +38,29 @@ class BitcoinDownloader:
 		# If Depthmode: Max is taken as the max depth to explore
 		# If not Depthmode: Max is taken as the number of nodes to explore
 		parseQueue = [(addr, 0)] # (Addr, Depth)
-		count = 0
+		count = 1
 		if VERBOSE: print "Beginning BFS, max = ", maxx, " depthMode = ", depthMode
+		explored = set()
 
 		while parseQueue: # Tests emptiness
 			(nextAddr, depth) = parseQueue.pop(0) 
 			if VERBOSE: print "Processing ", nextAddr
 			sources = self.getSources(nextAddr) # Minor optimization possibility here
-			if depthMode and depth < maxx:
-				for s in sources:
-					count += 1
-					parseQueue.append( (s, depth+1) )
-			elif (not depthMode):
-				while sources and count < maxx:
-					s = sources.pop(0)
+			# Note: In getting sources, this implicitly downloads the addr if its not already in data
+			while sources and ((depthMode and depth < maxx) or (not depthMode and count < maxx)):
+				s = sources.pop()
+				if s not in explored:
+					explored.add(s)
 					count += 1
 					parseQueue.append( (s, depth+1) )
 
 		self.saveData()
-		print "Finished breadth first search: found ", count, " nodes, final depth of \
-		", depth
+		print "Finished breadth first search: explored", count, "nodes,", len(self.addrMap), "locations, depth of", depth
 		return True
 
 	def saveData(self):
 		with open(self.dataFile + "_temp", "w") as f:
-			data = self.addrMap, self.addrList
+			data = self.addrMap
 			pickle.dump(data, f)
 
 		# Use an atomic rename to avoid corruption if program crashes during write
@@ -93,12 +90,11 @@ class BitcoinDownloader:
 	def loadData(self):
 		try:
 			with open(self.dataFile, "r") as f:
-				self.addrMap, self.addrList = pickle.load(f)
+				self.addrMap = pickle.load(f)
 		except:
-			self.addrMap  = {} # A dict of AddrStr -> AddrProperties 
-			self.addrList = [] # A list of Addrs in the parse order
+			self.addrMap = {} # A dict of AddrStr -> AddrProperties 
 
-		self.nAddrs = len(self.addrList)
+		self.nAddrs = len(self.addrMap)
 
 		return True
 
@@ -144,9 +140,9 @@ def testDownloader():
 
 def main():
 	MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
-	DATAFILE = HOMEDIR + "/rawdata.pkl"
+	DATAFILE = HOMEDIR + "rawdata.pkl"
 	bd = BitcoinDownloader(DATAFILE)
-	bd.BFS(MY_ADDR, 5, True)
+	bd.BFS(MY_ADDR, 6, True)
 
 if __name__ == '__main__':
 	main()
