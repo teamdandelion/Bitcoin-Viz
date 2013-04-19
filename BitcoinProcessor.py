@@ -10,6 +10,17 @@ where
 addrDict = parse of blockchain.info json
 txDict   = parse of blockchain.info json
 
+txDict=
+	"inputs"       -> [(Addr, Amt)]
+	"outputs"      -> [(Addr, Amt)]
+	"block_height" -> Int
+	"total"		   -> Amt
+	"tx_index"     -> Int
+
+addrDict =
+	"transactions" -> [txDict] # sorted by block height
+	"total_in"	   -> Amt
+	"total_out"    -> Amt
 
 """
 
@@ -18,6 +29,31 @@ import os, operator
 
 HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz/"
 MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
+
+
+def parse_txdict(rawDict):
+	inputs    = []
+	outputs   = []
+	total_in  = 0
+	total_out = 0
+
+	for i in rawDict["inputs"]:
+		p = i["prev_out"]
+		total_in += p["value"]
+		inputs.append(  (p["addr"], p["value"])  )
+
+	for o in rawDict["outputs"]
+		total_out += o["value"]
+		outputs.append( (o["addr"], o["value"]))
+
+	if total_in != total_out:
+		print "WARNING: Transaction in not equal transaction out!"
+		print rawDict
+
+	txdict["total_in"]  = total_in
+	txdict["total_out"] = total_out
+	txdict[]
+	return txdict
 
 class BitcoinProcessor:
 	def __init__(self, dataFile):
@@ -59,13 +95,13 @@ class BitcoinProcessor:
 					self.txs[txHash] = tx
 					try:
 						txBlock = tx["block_height"]
-						try:
-							self.blocks[txBlock].append(tx)
-						except KeyError:
-							self.blocks[txBlock] = [tx]
-
 					except KeyError:
-						print "unable to find block height: ======\n", tx
+						txBlock = 0
+					try:
+						self.blocks[txBlock].append(tx)
+					except KeyError:
+						self.blocks[txBlock] = [tx]
+
 
 	def sort_positions(self, starting_addr):
 		queue = [starting_addr]
@@ -74,15 +110,15 @@ class BitcoinProcessor:
 		while queue:
 			next = queue.pop(0)
 			self.positions.append(next)
-			sources = getSources(next)
+			sources = self.getSources(next)
 			for s in sources:
 				if s not in explored:
 					explored.add(s)
 					queue.append(s)
 		self.save_data()
 
-	def getSources(addr):
-		txs = self.addresses[addr]["txs"]
+	def getSources(self, addr):
+		txs = self.addresses[addr]["txs"] # May throw key error - need to account for situation where sources are not in scope
 		sources = []
 		for tx in txs:
 			inAddrs = []
@@ -99,9 +135,10 @@ class BitcoinProcessor:
 				sources += inAddrs
 		return sources
 
-	def writeInfo(target):
+	def writeInfo(self, target):
 		# placeholder
 		print "num addrs:", len(self.addresses)
+		print "========================"
 		sortedblocks = sorted(self.blocks.iteritems(), key=operator.itemgetter(0))
 		for (h, b) in sortedblocks:
 			print h, ":", len(b)
@@ -114,7 +151,7 @@ def main():
 
 	BP = BitcoinProcessor(PROCCESSED_DATAFILE)
 	BP.load_raw_data(RAW_DATAFILE)
-	BP.sort_positions(MY_ADDR)
+	#BP.sort_positions(MY_ADDR)
 	BP.writeInfo(None)
 
 if __name__ == '__main__':
