@@ -18,7 +18,7 @@ tx_dict=
 
 addrDict =
 	"txs"          -> [tx_dict] # sorted by block height
-	"n_txs"        -> Number of transactions
+	"n_tx"         -> Number of transactions
 	"total_in"	   -> Amt
 	"total_out"    -> Amt
 	"final_bal"    -> Amt
@@ -27,26 +27,31 @@ addrDict =
 
 import cPickle as pickle
 import os, operator, BitcoinParsers
-from elementtree.simpleXMLWriter import XMLWriter
+from lxml import etree
 
 HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz/Data/"
 MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
 
 
 class BitcoinProcessor:
-	def __init__(self, dataFile=None):
+	def __init__(self, rawFile, dataFile=None):
 		try:
 			with open(dataFile, "r") as f:
 				self.data = pickle.load(f)
+			print "Loaded data from file"
+			need_to_load = False
 		except:
 			print "Generating new data file"
-			self.data = {"addresses": {}, "txs": {}, "blocks": {}, "positions": []}
+			self.data = {"addresses": {}}
+			need_to_load = True
 
-		self.addrs = self.data["addresses"]
-		self.txs       = self.data["txs"]
-		self.blocks    = self.data["blocks"]
-		self.positions = self.data["positions"]
+		self.addrs     = self.data["addresses"]
+		# self.txs       = self.data["txs"]
+		# self.blocks    = self.data["blocks"]
+		# self.positions = self.data["positions"]
 		self.dataFile  = dataFile
+		if need_to_load:
+			self.load_raw_data(rawFile)
 
 	def load_raw_data(self, rawDataFile):
 		try:
@@ -59,16 +64,20 @@ class BitcoinProcessor:
 		self.save_data()
 
 	def save_data(self):
-		with open(self.dataFile + "_temp", "w") as f:
-			pickle.dump(self.data, f)
-		os.rename(self.dataFile + "_temp", self.dataFile)
+		try:
+			with open(self.dataFile + "_temp", "w") as f:
+				pickle.dump(self.data, f)
+			os.rename(self.dataFile + "_temp", self.dataFile)
+			print "Saved data successfully"
+		except:
+			print "Warning: Unable to save data file"
 
 	def add_data(self, addr, rawAddrDict):
-		if addr not in self.addrs or rawAddrDict["n_txs"] > self.addrs[addr]["n_txs"]:
+		if addr not in self.addrs or rawAddrDict["n_tx"] > self.addrs[addr]["n_tx"]:
 			# If we have no record on the address, definitely update. 
 			# If we have a record on the address, update only if it has 
 			# new (i.e. more) transactions
-			# Just note, we're comparing rawAddrDict["n_txs"] to addrDict["n_txs"]
+			# Just note, we're comparing rawAddrDict["n_tx"] to addrDict["n_tx"]
 			# Ie. comparing raw JSON data to our formatted dict. Shouldn't matter.
 			addrDict = BitcoinParsers.parse_addrdict(rawAddrDict)
 			self.addrs[addr] = addrDict
@@ -82,6 +91,11 @@ class BitcoinProcessor:
 					except KeyError:
 						self.blocks[txBlock] = [tx]
 
+	def build_blocks(self):
+		self.blocks = {}
+		for addr in self.addr2position.iterkeys():
+
+
 	def sort_positions(self, starting_addr, targetDepth):
 		# Does a BFS over the transaciton history starting with starting_addr
 		# Returns positions, a list of addresses in the order they are discovered
@@ -91,6 +105,7 @@ class BitcoinProcessor:
 		# addresses for the XML that I will import into processing. Ie. we refer 
 		# to the starting address consistently as 0, its immediate sources as 1,2,3..
 		# -1 means out-of-observed-network
+		print "Sorting positions with depth", targetDepth
 		queue = [(starting_addr, 0)]
 		positions = []
 		explored = set([starting_addr])
@@ -102,7 +117,7 @@ class BitcoinProcessor:
 				for s in sources:
 					if s in self.addrs and s not in explored:
 						explored.add(s)
-						queue.append(s, depth+1)
+						queue.append((s, depth+1))
 
 		addr2position = {}
 		for i in xrange(len(positions)):
@@ -111,6 +126,18 @@ class BitcoinProcessor:
 
 		self.positions = positions
 		self.addr2position = addr2position
+
+	def getSources(self, addr):
+		txs = self.addrs[addr]["txs"] # May throw key error - need to account for situation where sources are not in scope
+		sources = []
+		for tx in txs:
+			ipts = tx["inputs"]
+			inAddrs = [i[0] for i in tx["inputs"]]
+			if addr not in inAddrs:
+				# if addr in inAddrs, then this transaction went from addr to children
+				# if addr not in inAddrs, then this transaction went from parents to addr
+				sources += inAddrs
+		return sources
 
 	def write_xml(self, starting_addr, filename, depth=3):
 		# Write an xml file (see template.xml) which contains all the info on transactions
@@ -127,7 +154,8 @@ class BitcoinProcessor:
 			self.write_block(root, bnum, block)
 
 		with open(filename, "w") as f:
-			f.write(etree.tostring(root))
+			xmlstr = etree.tostring(root, pretty_print=True)
+			f.write(xmlstr)
 
 
 	# parent 	:: XML Element
@@ -140,8 +168,10 @@ class BitcoinProcessor:
 	# Flow :: (String Addr, Int Amount)
 
 	def write_block(self, parent, blockNum, block):
+		relevant_trx = getRelevant(block)
+
 		block_elem = etree.SubElement(parent, "Block", \
-						Number=blockNum, Transactions=len(block))
+						Number=str(blockNum), Transactions=str(len(block)))
 		for tx_dict in block:
 			# Each transaction has a unique (sequential, increasing) ID
 			tx_elem = etree.SubElement(block_elem, "Transaction", \
@@ -166,36 +196,29 @@ class BitcoinProcessor:
 			for flow in tx_dict["outputs"]:
 				self.write_flow(out_elem, flow)
 
+	def getRelevant(self, block):
+		# Takes a list of transactions (i.e. a block) and returns those transactions that 
+		# involve addresses included in self.addr2position
+		# i.e. transactions where at least 1 node is in our network
+		for tx in block:
+			if 
 
 	def write_flow(self, parent, (addr, amount)):
-		flowE = etree.SubElement(parent, "Flow")
-		
-		position = self.addr2position[addr]
-		posE = etree.SubElement(flowE, "Position")
-		posE.text = str(position)
+		try:	
+			position = self.addr2position[addr]
+		except KeyError:
+			assert 0
+			position = -1
+			# -1 signifies out-of-network
 
-		amtE = etree.SubElement(flowE, "Amt")
-		amtE.text = str(amount)
+		flowE = etree.SubElement(parent, "Flow", Position=position, Amt=amount)
+		# posE = etree.SubElement(flowE, "Position")
+		# posE.text = str(position)
+
+		# amtE = etree.SubElement(flowE, "Amt")
+		# amtE.text = str(amount)
 
 
-
-	def getSources(self, addr):
-		txs = self.addrs[addr]["txs"] # May throw key error - need to account for situation where sources are not in scope
-		sources = []
-		for tx in txs:
-			inAddrs = []
-			ipts = tx["inputs"]
-			for i in ipts:
-				try:
-					inAddrs.append(i["prev_out"]["addr"])
-				except KeyError:
-					# Newly generated coins have no source
-					pass
-			if addr not in inAddrs:
-				# if addr in inAddrs, then this transaction went from addr to children
-				# if addr not in inAddrs, then this transaction went from parents to addr
-				sources += inAddrs
-		return sources
 
 
 
@@ -203,12 +226,11 @@ class BitcoinProcessor:
 def main():
 	PROCCESSED_DATAFILE = HOMEDIR + "parsed_data.pkl"
 	RAW_DATAFILE = HOMEDIR + "rawdata.pkl"
-	XMLFILe = HOMEDIR + "transactions.xml"
+	XMLFILE = HOMEDIR + "transactions.xml"
 
-	BP = BitcoinProcessor()
-	BP.load_raw_data(RAW_DATAFILE)
+	BP = BitcoinProcessor(RAW_DATAFILE, PROCCESSED_DATAFILE)
 	
-	BP.write_xml(MY_ADDR, 3)
+	BP.write_xml(MY_ADDR, XMLFILE, 3)
 
 if __name__ == '__main__':
 	main()
