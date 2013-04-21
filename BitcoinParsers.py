@@ -27,17 +27,17 @@ def parse_txdict(rawDict):
 			inputs.append(  (p["addr"], p["value"])  )
 
 		except KeyError:
-			raise NotImplementedError
+			pass # Generation transactions have no inputs
 
 	for o in rawDict["out"]:
-		total_out += o["value"]
-		outputs.append( (o["addr"], o["value"]))
+		try:
+			outputs.append( (o["addr"], o["value"]))
+			total_out += o["value"]
+		except KeyError:
+			pass # some transactions are just weird...
 
-	if total_in != total_out:
-		print "WARNING: Transaction in not equal transaction out!"
-		print rawDict
-
-	txdict["total"]   = total_in
-	txdict["inputs"]  = inputs
-	txdict["outputs"] = outputs
+	txdict["total_in"]  = total_in
+	txdict["total_out"] = total_out
+	txdict["inputs"]    = inputs
+	txdict["outputs"]   = outputs
 	return txdict

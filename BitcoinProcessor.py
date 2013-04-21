@@ -28,7 +28,7 @@ addrDict =
 import cPickle as pickle
 import os, operator, BitcoinParsers
 
-HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz/"
+HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz/Data/"
 MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
 
 
