@@ -8,7 +8,7 @@ def parse_addrdict(rawDict):
 			"txs"       : [parse_txdict(d) for d in rawDict["txs"]]}
 
 def parse_txdict(rawDict):
-	txdict    = {"hash": rawDict["hash"]}
+	txdict    = {"hash": rawDict["hash"], "generative": False}
 	inputs    = []
 	outputs   = []
 	total_in  = 0
@@ -20,14 +20,13 @@ def parse_txdict(rawDict):
 		txdict["block_height"] = None
 	
 	for i in rawDict["inputs"]:
-		# TODO: Need to handle generation transactions
 		try:
 			p = i["prev_out"]
 			total_in += p["value"]
 			inputs.append(  (p["addr"], p["value"])  )
 
 		except KeyError:
-			pass # Generation transactions have no inputs
+			txdict["generative"] = True
 
 	for o in rawDict["out"]:
 		try:

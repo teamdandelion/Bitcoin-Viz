@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BitcoinXML>
+	<Block Number=123456>
+		<Transaction ID=0>
+			<Source>3</Source>
+			<Destination>5</Destination>
+			<Amount>392432342</Amount>
+		</Transaction>
+	</Block>
+	...
+</BitcoinXML>

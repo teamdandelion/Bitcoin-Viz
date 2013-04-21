@@ -2,22 +2,22 @@
 Loads a data file containing a dict mapping from address to address maps
 Create a new dict with the following structure:
 "addresses": {addr -> addrDict}
-"txs": {hash -> txDict}
+"txs": {hash -> tx_dict}
 "blocks": {index -> [tx]}
 "positions": [addr]
 
 where
 addrDict = parse of blockchain.info json
-txDict   = parse of blockchain.info json
+tx_dict   = parse of blockchain.info json
 
-txDict=
+tx_dict=
 	"inputs"       -> [(Addr, Amt)]
 	"outputs"      -> [(Addr, Amt)]
 	"block_height" -> Int OR None (when unconfirmed)
 	"total"		   -> Amt
 
 addrDict =
-	"txs"          -> [txDict] # sorted by block height
+	"txs"          -> [tx_dict] # sorted by block height
 	"n_txs"        -> Number of transactions
 	"total_in"	   -> Amt
 	"total_out"    -> Amt
@@ -27,6 +27,7 @@ addrDict =
 
 import cPickle as pickle
 import os, operator, BitcoinParsers
+from elementtree.simpleXMLWriter import XMLWriter
 
 HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz/Data/"
 MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
@@ -82,18 +83,95 @@ class BitcoinProcessor:
 						self.blocks[txBlock] = [tx]
 
 	def sort_positions(self, starting_addr):
+		# Does a BFS over the transaciton history starting with starting_addr
+		# Returns positions, a list of addresses in the order they are discovered
+		# (naturally this starts with starting_addr)
+		# Also returns addr2position, a map from an address to its position in this list
+		# The purpose of this section is that, for simplicity, i want to abstract away from 
+		# addresses for the XML that I will import into processing. Ie. we refer 
+		# to the starting address consistently as 0, its immediate sources as 1,2,3..
+		# -1 means out-of-observed-network
 		queue = [starting_addr]
-		self.positions = []
+		positions = []
 		explored = set([starting_addr])
 		while queue:
 			next = queue.pop(0)
-			self.positions.append(next)
-			sources = self.getSources(next)
-			for s in sources:
-				if s not in explored:
-					explored.add(s)
-					queue.append(s)
-		self.save_data()
+			if next in addrs:
+				positions.append(next)
+				sources = self.getSources(next)
+				for s in sources:
+					if s not in explored:
+						explored.add(s)
+						queue.append(s)
+
+		addr2position = {}
+		for i in xrange(len(positions)):
+			a = positions[i]
+			addr2position[a] = i
+
+		self.positions = positions
+		self.addr2position = addr2position
+
+	def write_xml(self, starting_addr, filename):
+		# Write an xml file (see template.xml) which contains all the info on transactions
+		# For processing to parse and make art
+		self.sort_positions(starting_addr)
+		# Sorted blocks is a list of (Blocknumber, Block) tuples sorted by blocknumber
+		sortedblocks = sorted(self.blocks.iteritems(), key=operator.itemgetter(0))
+
+		root = etree.Element("BitcoinXML")
+
+		self.txID = 0 # Transaction ID is globally unique for the xml, i.e. not block specific
+
+		for bnum, block in sortedblocks:
+			self.write_block(root, bnum, block)
+
+		with open(filename, "w") as f:
+			f.write(etree.tostring(root))
+
+
+	# parent 	:: XML Element
+	# blockNum  :: Int
+	# Block 	:: [Transaction]
+	# Transaction :: {} String hash, 
+	#				 Bool generative, 
+	#				 Int total_in, total_out, 
+	#				 [flow], [flow]
+	# Flow :: (String Addr, Int Amount)
+
+	def write_block(self, parent, blockNum, block):
+		block_elem = etree.SubElement(parent, "Block", \
+						Number=blockNum, Transactions=len(block))
+		for tx_dict in block:
+			# Each transaction has a unique (sequential, increasing) ID
+			tx_elem = etree.SubElement(block_elem, "Transaction", \
+						ID=str(self.txID), Generative=str(tx_dict["generative"]))
+			self.txID += 1
+
+			num_inputs  = str(len(tx_dict["inputs" ]))
+			num_outputs = str(len(tx_dict["outputs"]))
+
+			total_in  = str(tx_dict["total_in" ])
+			total_out = str(tx_dict["total_out"])
+
+			in_elem = etree.SubElement(tx_elem, "Inputs", \
+						Num=num_inputs, Total=total_in)
+			
+			out_elem = etree.SubElement(tx_elem, "Outputs", \
+						Num=num_outputs, Total=total_out)
+
+			for flow in tx_dict["inputs"]:
+				self.write_flow(in_elem, flow)
+
+			for flow in tx_dict["outputs"]:
+				self.write_flow(out_elem, flow)
+
+
+	def write_flow(self, parent, (addr, amount)):
+		flowE = etree.SubElement(parent, "Flow")
+		position = self.addr2position
+
+
 
 	def getSources(self, addr):
 		txs = self.addrs[addr]["txs"] # May throw key error - need to account for situation where sources are not in scope
@@ -113,13 +191,7 @@ class BitcoinProcessor:
 				sources += inAddrs
 		return sources
 
-	def writeInfo(self, target):
-		# placeholder
-		print "num addrs:", len(self.addrs)
-		print "========================"
-		sortedblocks = sorted(self.blocks.iteritems(), key=operator.itemgetter(0))
-		for (h, b) in sortedblocks:
-			print h, ":", len(b)
+
 
 
 def main():
