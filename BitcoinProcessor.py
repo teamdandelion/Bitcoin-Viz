@@ -81,19 +81,31 @@ class BitcoinProcessor:
 			# Ie. comparing raw JSON data to our formatted dict. Shouldn't matter.
 			addrDict = BitcoinParsers.parse_addrdict(rawAddrDict)
 			self.addrs[addr] = addrDict
-			for tx in addrDict["txs"]:
-				txHash = tx["hash"]
-				self.txs[txHash] = tx # Overwrite if already exists
-				txBlock = tx["block_height"]
-				if txBlock is not None:
-					try:
-						self.blocks[txBlock].append(tx)
-					except KeyError:
-						self.blocks[txBlock] = [tx]
+			# for tx in addrDict["txs"]:
+			# 	txHash = tx["hash"]
+			# 	self.txs[txHash] = tx # Overwrite if already exists
+			# 	txBlock = tx["block_height"]
+			# 	if txBlock is not None:
+			# 		try:
+			# 			self.blocks[txBlock].append(tx)
+			# 		except KeyError:
+			# 			self.blocks[txBlock] = [tx]
 
 	def build_blocks(self):
-		self.blocks = {}
+		"Building blocks"
+		blocks = {}
+		explored_tx = set()
 		for addr in self.addr2position.iterkeys():
+			for tx in self.addrs[addr]["txs"]:
+				if tx["hash"] not in explored_tx:
+					explored_tx.add(tx["hash"])
+					txBlock = tx["block_height"]
+					if txBlock is not None:
+						try:
+							blocks[txBlock].append(tx)
+						except KeyError:
+							blocks[txBlock] = [tx]
+		return blocks
 
 
 	def sort_positions(self, starting_addr, targetDepth):
@@ -139,12 +151,13 @@ class BitcoinProcessor:
 				sources += inAddrs
 		return sources
 
-	def write_xml(self, starting_addr, filename, depth=3):
+	def write_xml(self, starting_addr, filename, depth=2):
 		# Write an xml file (see template.xml) which contains all the info on transactions
 		# For processing to parse and make art
 		self.sort_positions(starting_addr, depth)
 		# Sorted blocks is a list of (Blocknumber, Block) tuples sorted by blocknumber
-		sortedblocks = sorted(self.blocks.iteritems(), key=operator.itemgetter(0))
+		blocks = self.build_blocks()
+		sortedblocks = sorted(blocks.iteritems(), key=operator.itemgetter(0))
 
 		root = etree.Element("BitcoinXML")
 
@@ -168,7 +181,6 @@ class BitcoinProcessor:
 	# Flow :: (String Addr, Int Amount)
 
 	def write_block(self, parent, blockNum, block):
-		relevant_trx = getRelevant(block)
 
 		block_elem = etree.SubElement(parent, "Block", \
 						Number=str(blockNum), Transactions=str(len(block)))
@@ -196,22 +208,14 @@ class BitcoinProcessor:
 			for flow in tx_dict["outputs"]:
 				self.write_flow(out_elem, flow)
 
-	def getRelevant(self, block):
-		# Takes a list of transactions (i.e. a block) and returns those transactions that 
-		# involve addresses included in self.addr2position
-		# i.e. transactions where at least 1 node is in our network
-		for tx in block:
-			if 
-
 	def write_flow(self, parent, (addr, amount)):
 		try:	
 			position = self.addr2position[addr]
 		except KeyError:
-			assert 0
 			position = -1
 			# -1 signifies out-of-network
 
-		flowE = etree.SubElement(parent, "Flow", Position=position, Amt=amount)
+		flowE = etree.SubElement(parent, "Flow", Position=str(position), Amt=str(amount))
 		# posE = etree.SubElement(flowE, "Position")
 		# posE.text = str(position)
 
@@ -230,7 +234,7 @@ def main():
 
 	BP = BitcoinProcessor(RAW_DATAFILE, PROCCESSED_DATAFILE)
 	
-	BP.write_xml(MY_ADDR, XMLFILE, 3)
+	BP.write_xml(MY_ADDR, XMLFILE, 2)
 
 if __name__ == '__main__':
 	main()
