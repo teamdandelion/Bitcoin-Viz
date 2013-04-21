@@ -34,7 +34,7 @@ MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
 
 
 class BitcoinProcessor:
-	def __init__(self, dataFile):
+	def __init__(self, dataFile=None):
 		try:
 			with open(dataFile, "r") as f:
 				self.data = pickle.load(f)
@@ -82,7 +82,7 @@ class BitcoinProcessor:
 					except KeyError:
 						self.blocks[txBlock] = [tx]
 
-	def sort_positions(self, starting_addr):
+	def sort_positions(self, starting_addr, targetDepth):
 		# Does a BFS over the transaciton history starting with starting_addr
 		# Returns positions, a list of addresses in the order they are discovered
 		# (naturally this starts with starting_addr)
@@ -91,18 +91,18 @@ class BitcoinProcessor:
 		# addresses for the XML that I will import into processing. Ie. we refer 
 		# to the starting address consistently as 0, its immediate sources as 1,2,3..
 		# -1 means out-of-observed-network
-		queue = [starting_addr]
+		queue = [(starting_addr, 0)]
 		positions = []
 		explored = set([starting_addr])
 		while queue:
-			next = queue.pop(0)
-			if next in addrs:
-				positions.append(next)
+			next, depth = queue.pop(0)
+			positions.append(next)
+			if depth < targetDepth:
 				sources = self.getSources(next)
 				for s in sources:
-					if s not in explored:
+					if s in self.addrs and s not in explored:
 						explored.add(s)
-						queue.append(s)
+						queue.append(s, depth+1)
 
 		addr2position = {}
 		for i in xrange(len(positions)):
@@ -112,10 +112,10 @@ class BitcoinProcessor:
 		self.positions = positions
 		self.addr2position = addr2position
 
-	def write_xml(self, starting_addr, filename):
+	def write_xml(self, starting_addr, filename, depth=3):
 		# Write an xml file (see template.xml) which contains all the info on transactions
 		# For processing to parse and make art
-		self.sort_positions(starting_addr)
+		self.sort_positions(starting_addr, depth)
 		# Sorted blocks is a list of (Blocknumber, Block) tuples sorted by blocknumber
 		sortedblocks = sorted(self.blocks.iteritems(), key=operator.itemgetter(0))
 
@@ -169,7 +169,13 @@ class BitcoinProcessor:
 
 	def write_flow(self, parent, (addr, amount)):
 		flowE = etree.SubElement(parent, "Flow")
-		position = self.addr2position
+		
+		position = self.addr2position[addr]
+		posE = etree.SubElement(flowE, "Position")
+		posE.text = str(position)
+
+		amtE = etree.SubElement(flowE, "Amt")
+		amtE.text = str(amount)
 
 
 
@@ -197,11 +203,12 @@ class BitcoinProcessor:
 def main():
 	PROCCESSED_DATAFILE = HOMEDIR + "parsed_data.pkl"
 	RAW_DATAFILE = HOMEDIR + "rawdata.pkl"
+	XMLFILe = HOMEDIR + "transactions.xml"
 
-	BP = BitcoinProcessor(PROCCESSED_DATAFILE)
+	BP = BitcoinProcessor()
 	BP.load_raw_data(RAW_DATAFILE)
-	#BP.sort_positions(MY_ADDR)
-	BP.writeInfo(None)
+	
+	BP.write_xml(MY_ADDR, 3)
 
 if __name__ == '__main__':
 	main()

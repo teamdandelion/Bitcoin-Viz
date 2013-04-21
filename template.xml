@@ -1,10 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BitcoinXML>
-	<Block Number=123456>
-		<Transaction ID=0>
-			<Source>3</Source>
-			<Destination>5</Destination>
-			<Amount>392432342</Amount>
+	<Block Number="123456" Transactions="2343">
+		<Transaction ID="0" Generative="False">
+			<Inputs Num="2" Total="100">
+				<Flow>
+					<Position> 1 </Position>
+					<Amt> 50 </Amt>
+				</Flow>
+
+				<Flow>
+					<Position> 2 </Position>
+					<Amt> 50 </Amt>
+				</Flow>
+			</Inputs>
+			<Outputs Num="1" Total="100">
+				<Flow>
+					<Position> 5 </Position>
+					<Amt> 100 </Amt>
+				</Flow>
+			</Outputs>
+
+
+			
 		</Transaction>
 	</Block>
 	...
