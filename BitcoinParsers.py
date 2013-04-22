@@ -1,6 +1,6 @@
 
 
-def parse_addrdict(rawDict):
+def parse_addrdict(addr, rawDict):
 	parsed = {"n_tx"		: rawDict["n_tx"]						   , 
 			 "total_in"		: rawDict["total_received"]				   ,
 			 "total_out"	: rawDict["total_sent"]					   , 
@@ -9,14 +9,28 @@ def parse_addrdict(rawDict):
 
 	visible_in  = 0
 	visible_out = 0
-	# for tx in parsed["txs"]:
+	for tx in parsed["txs"]:
+		ipts = tx["inputs"]
+		opts = tx["outputs"]
+		if addr in ipts:
+			visible_out += ipts[addr]
+		if addr in opts:
+			visible_in += opts[addr]
+		# This may look backwards, but makes sense
+		# If the addr is listed as an input to the transaction, then its coming out of the addr
+		# If the addr is listed as an output for the transaction, its coming into the addr
+
+	# final = in - out + starting
+	# starting = final + out - in
+	starting_bal = rawDict["final_balance"] + visible_out - visible_in
+	parsed["starting_bal"] = starting_bal
 
 	return parsed
 
 def parse_txdict(rawDict):
 	txdict    = {"hash": rawDict["hash"], "generative": False}
-	inputs    = []
-	outputs   = []
+	inputs    = {}
+	outputs   = {}
 	total_in  = 0
 	total_out = 0
 
@@ -28,16 +42,28 @@ def parse_txdict(rawDict):
 	for i in rawDict["inputs"]:
 		try:
 			p = i["prev_out"]
-			total_in += p["value"]
-			inputs.append(  (p["addr"], p["value"])  )
+			addr = p["addr"]
+			amt  = p["value"]
+			total_in += amt
+			if addr not in inputs:
+				inputs[addr] = amt
+			else:
+				inputs[addr] += amt
 
 		except KeyError:
 			txdict["generative"] = True
 
 	for o in rawDict["out"]:
 		try:
-			outputs.append( (o["addr"], o["value"]))
-			total_out += o["value"]
+			addr = o["addr"]
+			amt  = o["value"]
+
+			total_out += amt
+
+			if addr not in outputs:
+				outputs[addr] = amt
+			else:
+				outputs[addr] += amt
 		except KeyError:
 			pass # some transactions are just weird...
 

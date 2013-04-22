@@ -11,20 +11,29 @@ class Manager{
 
 
 	Manager(XML bitcoinXML){
-		numAddrs  = bitcoinXML.getInt("NumAddrs");
-		print("Num addrs is: " + numAddrs);
+		XML addrElem = bitcoinXML.getChild("Addrs");
+		XML blockElem = bitcoinXML.getChild("Blocks");
+		numAddrs  = addrElem.getInt("NumAddrs");
+		println("Num addrs is: " + numAddrs);
+
+		XML[] addrXMLs = addrElem.getChildren("Addr");
+		println("Got addr children");
 
 		addrs  = new Address[numAddrs];
 		for (int i=0; i<numAddrs; i++){
+			XML a = addrXMLs[i];
+			assert (a.getInt("Position") == i);
+			int sbal = a.getInt("StartingBalance");
 		    addrs[i] = new Address(i);
+		    addrs[i].addBitcoins(sbal);
 		}
 
 		println("Allocated addrs");
 
-		numBlocks = bitcoinXML.getInt("NumBlocks");
+		numBlocks = blockElem.getInt("NumBlocks");
 		println("Got NumBlocks: " + numBlocks);
 
-		blockXMLs = bitcoinXML.getChildren("Block");
+		blockXMLs = blockElem.getChildren("Block");
 		println("Got blockXMLs, len:" + blockXMLs.length);
 
 		blocks = new Block[numBlocks];

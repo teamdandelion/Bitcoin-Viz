@@ -25,7 +25,7 @@ XYCoord CENTERPOINT = new XYCoord(CX, CY);
 void setup(){
     println("Starting setup");
     size(XBOUND, YBOUND);
-    noStroke();
+    stroke(255);
     println("Loading XML");
     myXML = loadXML("transactions.xml");
     //println(myXML);
@@ -58,7 +58,9 @@ color size2color(int bitcoins){
 }
 
 float size2radius(int bitcoins){
-    return sqrt(bitcoins) / 3;
+    // A = pi * r ^ 2
+    // r = sqrt(A / pi)
+    return sqrt(bitcoins / PI);
 }
 
 void drawCircle(XYCoord xy, float radius, color c){

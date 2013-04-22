@@ -1,16 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BitcoinXML NumAddrs="293" NumBlocks="719">
-	<Block Number="123456" Transactions="2343">
-		<Transaction ID="0" Generative="False">
-			<Inputs Num="2" Total="100">
-				<Flow Position="1" Amt="50"/>
+	<Addrs NumAddrs="239">
+		<Addr Position="0" StartingBalance="0"/>
+		<Addr Position="1" StartingBalance="3"/>
+		...
+	</Addrs>
+	<Blocks NumBlocks="719">
+		<Block Number="123456" Transactions="2343">
+			<Transaction ID="0" Generative="False">
+				<Inputs Num="2" Total="100">
+					<Flow Position="1" Amt="50"/>
 
-				<Flow Position="3" Amt="50"/>
-			</Inputs>
-			<Outputs Num="1" Total="100">
-				<Flow Position="9" Amt="50"/>
-			</Outputs>
-		</Transaction>
-	</Block>
-	...
+					<Flow Position="3" Amt="50"/>
+				</Inputs>
+				<Outputs Num="1" Total="100">
+					<Flow Position="9" Amt="50"/>
+				</Outputs>
+			</Transaction>
+		</Block>
+		...
+	</Blocks>
 </BitcoinXML>

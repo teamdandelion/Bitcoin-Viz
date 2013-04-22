@@ -22,8 +22,11 @@ addrDict =
 	"total_in"	   -> Amt
 	"total_out"    -> Amt
 	"final_bal"    -> Amt
+	"starting_bal" -> Amt
 
 """
+
+BIG_DIVISOR = 1000000
 
 import cPickle as pickle
 import os, operator, BitcoinParsers
@@ -79,7 +82,7 @@ class BitcoinProcessor:
 			# new (i.e. more) transactions
 			# Just note, we're comparing rawAddrDict["n_tx"] to addrDict["n_tx"]
 			# Ie. comparing raw JSON data to our formatted dict. Shouldn't matter.
-			addrDict = BitcoinParsers.parse_addrdict(rawAddrDict)
+			addrDict = BitcoinParsers.parse_addrdict(addr, rawAddrDict)
 			self.addrs[addr] = addrDict
 			# for tx in addrDict["txs"]:
 			# 	txHash = tx["hash"]
@@ -144,11 +147,10 @@ class BitcoinProcessor:
 		sources = []
 		for tx in txs:
 			ipts = tx["inputs"]
-			inAddrs = [i[0] for i in tx["inputs"]]
-			if addr not in inAddrs:
+			if addr not in ipts:
 				# if addr in inAddrs, then this transaction went from addr to children
 				# if addr not in inAddrs, then this transaction went from parents to addr
-				sources += inAddrs
+				sources += ipts.keys()
 		return sources
 
 	def write_xml(self, starting_addr, filename, depth=2):
@@ -162,17 +164,27 @@ class BitcoinProcessor:
 		numAddrs = len(self.addr2position)
 		numBlocks = len(blocks)
 
-		root = etree.Element("BitcoinXML", NumAddrs=str(numAddrs), NumBlocks=str(numBlocks))
+		root = etree.Element("BitcoinXML")
+		addrsE  = etree.SubElement(root, "Addrs" , NumAddrs =str(numAddrs ))
+		blocksE = etree.SubElement(root, "Blocks", NumBlocks=str(numBlocks))
 
 		self.txID = 0 # Transaction ID is globally unique for the xml, i.e. not block specific
 
+		for position in xrange(numAddrs):
+			self.write_addr(addrsE, position)
+
 		for bnum, block in sortedblocks:
-			self.write_block(root, bnum, block)
+			self.write_block(blocksE, bnum, block)
 
 		with open(filename, "w") as f:
 			xmlstr = etree.tostring(root, pretty_print=True)
 			f.write(xmlstr)
 
+	def write_addr(self, parent, p):
+		addr = self.positions[p]
+		addrDict = self.addrs[addr]
+		starting_bal = addrDict["starting_bal"] / BIG_DIVISOR
+		a_elem = etree.SubElement(parent, "Addr", Position=str(p), StartingBalance=str(starting_bal))
 
 	# parent 	:: XML Element
 	# blockNum  :: Int
@@ -196,8 +208,8 @@ class BitcoinProcessor:
 			num_inputs  = str(len(tx_dict["inputs" ]))
 			num_outputs = str(len(tx_dict["outputs"]))
 
-			total_in  = str(tx_dict["total_in" ] / 1000000)
-			total_out = str(tx_dict["total_out"] / 1000000)
+			total_in  = str(tx_dict["total_in" ] / BIG_DIVISOR)
+			total_out = str(tx_dict["total_out"] / BIG_DIVISOR)
 
 			in_elem = etree.SubElement(tx_elem, "Inputs", \
 						Num=num_inputs, Total=total_in)
@@ -205,10 +217,11 @@ class BitcoinProcessor:
 			out_elem = etree.SubElement(tx_elem, "Outputs", \
 						Num=num_outputs, Total=total_out)
 
-			for flow in tx_dict["inputs"]:
+			# a flow is an ugly way of saying an (addr, amt) tuple
+			for flow in tx_dict["inputs"].iteritems():
 				self.write_flow(in_elem, flow)
 
-			for flow in tx_dict["outputs"]:
+			for flow in tx_dict["outputs"].iteritems():
 				self.write_flow(out_elem, flow)
 
 	def write_flow(self, parent, (addr, amount)):
@@ -238,7 +251,7 @@ def main():
 	BP = BitcoinProcessor(RAW_DATAFILE, PROCCESSED_DATAFILE)
 	
 	BP.write_xml(MY_ADDR, XMLFILE, 5)
-	print BP.positions[380]
+	#print BP.positions[380]
 
 if __name__ == '__main__':
 	main()
