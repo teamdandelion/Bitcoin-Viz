@@ -4,7 +4,7 @@ XML myXML;
 int XBOUND = 800;
 int YBOUND = 800;
 int RADIUS = 360;
-int N_CIRCLES = 80;
+int N_CIRCLES = 800;
 // The spiral code taken from a Processing.js example by 
 // Jim Bumgardner
 // http://krazydad.com/tutorials/circles_js/showexample.php?ex=phyllo_equal
@@ -58,7 +58,7 @@ color size2color(int bitcoins){
 }
 
 float size2radius(int bitcoins){
-    return 1.0 + sqrt(bitcoins) / 10;
+    return sqrt(bitcoins) / 3;
 }
 
 void drawCircle(XYCoord xy, float radius, color c){

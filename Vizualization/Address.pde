@@ -19,7 +19,12 @@ class Address {
     }
 
     int subtractBitcoins(int amt){
-        return currentBitcoins -= amt;
+        currentBitcoins -= amt;
+        if (currentBitcoins < 0){
+            println("Warning: Addr:" + position + " has amt: " + currentBitcoins);
+        }
+        return currentBitcoins;
+
     }
 
     void display(){

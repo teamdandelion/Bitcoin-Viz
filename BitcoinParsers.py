@@ -1,11 +1,17 @@
 
 
 def parse_addrdict(rawDict):
-	return {"n_tx"		: rawDict["n_tx"]						   , 
-			"total_in"	: rawDict["total_received"]				   ,
-			"total_out"	: rawDict["total_sent"]					   , 
-			"final_bal"	: rawDict["final_balance"]				   ,
-			"txs"       : [parse_txdict(d) for d in rawDict["txs"]]}
+	parsed = {"n_tx"		: rawDict["n_tx"]						   , 
+			 "total_in"		: rawDict["total_received"]				   ,
+			 "total_out"	: rawDict["total_sent"]					   , 
+			 "final_bal"	: rawDict["final_balance"]				   ,
+			 "txs"       	: [parse_txdict(d) for d in rawDict["txs"]]}
+
+	visible_in  = 0
+	visible_out = 0
+	# for tx in parsed["txs"]:
+
+	return parsed
 
 def parse_txdict(rawDict):
 	txdict    = {"hash": rawDict["hash"], "generative": False}

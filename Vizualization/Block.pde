@@ -3,12 +3,14 @@ class Block{
     Transaction[] txs;
     int numTransactions;
     Manager myManager;
+    int blockNum;
     
     Block(Manager myManager, XML blockXML){
         this.myManager = myManager;
 
         XML[] transactionXMLs = blockXML.getChildren("Transaction");
         numTransactions = blockXML.getInt("Transactions");
+        blockNum = blockXML.getInt("Number");
 
         txs = new Transaction[numTransactions];
         for (int i=0; i<numTransactions; i++){
@@ -17,6 +19,7 @@ class Block{
     }
 
     void addFlows(){
+        println("Adding block: " + blockNum);
         for (int i=0; i<numTransactions; i++){
             txs[i].addFlows(myManager);
         }

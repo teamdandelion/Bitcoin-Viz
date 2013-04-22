@@ -20,7 +20,7 @@ XML myXML;
 int XBOUND = 800;
 int YBOUND = 800;
 int RADIUS = 360;
-int N_CIRCLES = 80;
+int N_CIRCLES = 800;
 // The spiral code taken from a Processing.js example by 
 // Jim Bumgardner
 // http://krazydad.com/tutorials/circles_js/showexample.php?ex=phyllo_equal
@@ -74,7 +74,7 @@ public int size2color(int bitcoins){
 }
 
 public float size2radius(int bitcoins){
-    return 1.0f + sqrt(bitcoins) / 10;
+    return sqrt(bitcoins) / 3;
 }
 
 public void drawCircle(XYCoord xy, float radius, int c){
@@ -104,7 +104,12 @@ class Address {
     }
 
     public int subtractBitcoins(int amt){
-        return currentBitcoins -= amt;
+        currentBitcoins -= amt;
+        if (currentBitcoins < 0){
+            println("Warning: Addr:" + position + " has amt: " + currentBitcoins);
+        }
+        return currentBitcoins;
+
     }
 
     public void display(){
@@ -125,12 +130,14 @@ class Block{
     Transaction[] txs;
     int numTransactions;
     Manager myManager;
+    int blockNum;
     
     Block(Manager myManager, XML blockXML){
         this.myManager = myManager;
 
         XML[] transactionXMLs = blockXML.getChildren("Transaction");
         numTransactions = blockXML.getInt("Transactions");
+        blockNum = blockXML.getInt("Number");
 
         txs = new Transaction[numTransactions];
         for (int i=0; i<numTransactions; i++){
@@ -139,6 +146,7 @@ class Block{
     }
 
     public void addFlows(){
+        println("Adding block: " + blockNum);
         for (int i=0; i<numTransactions; i++){
             txs[i].addFlows(myManager);
         }
@@ -246,6 +254,7 @@ class Flow {
     int travelTime;  // in miliseconds
     int startTime; // in miliseconds
     boolean finished;
+    int myColor;
 
     Flow(Address source, Address destination, int amount, int travelTime){
         this.destination = destination;
@@ -258,12 +267,15 @@ class Flow {
         if (source == null){
             destinationXY = destination.getXY();
             sourceXY = destinationXY.getRadialXY();
+            myColor = color(255,0,0); // OON->IN = Red
         } else if (destination == null){
             sourceXY = source.getXY();
             destinationXY = sourceXY.getRadialXY();
+            myColor = color(0,255,0); // IN->OUT = Green
         } else {
             sourceXY = source.getXY();
             destinationXY = destination.getXY();
+            myColor = color(255,255,255); // IN->IN = Black
         }
 
         if (source != null){
@@ -294,7 +306,7 @@ class Flow {
     public void drawFlow(int currentTime){
         float p = (float) (currentTime - startTime) / travelTime;
         XYCoord myLocation = sourceXY.travelAlong(destinationXY, p);
-        int c = size2color(amount);
+        int c = myColor;
         float radius = size2radius(amount);
         drawCircle(myLocation, radius, c);
     }
@@ -308,7 +320,7 @@ class Manager{
 	ArrayList flows;
 	Block[] blocks;
 	XML[] blockXMLs;
-	int flowTime = 3000;
+	int flowTime = 500;
 	int currentBlockIndex = 0;
 	int startTime;
 
@@ -364,6 +376,11 @@ class Manager{
 			// out of network 
 		}
 
+		if (srcPos == dstPos){
+			println("Got a flow from " + srcPos + " to self, amt:" + amt);
+			return;
+		}
+
 		if (srcPos == -1){
 			srcAddr = null;
 		} else {
@@ -382,7 +399,7 @@ class Manager{
 
 	public void display(){
 		int currentTime = millis();
-		if ((currentTime - startTime) % flowTime > currentBlockIndex){
+		if ((currentTime - startTime) / flowTime > currentBlockIndex){
 			addBlock();
 		}
 

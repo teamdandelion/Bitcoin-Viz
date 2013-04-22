@@ -5,7 +5,7 @@ class Manager{
 	ArrayList flows;
 	Block[] blocks;
 	XML[] blockXMLs;
-	int flowTime = 3000;
+	int flowTime = 500;
 	int currentBlockIndex = 0;
 	int startTime;
 
@@ -61,6 +61,11 @@ class Manager{
 			// out of network 
 		}
 
+		if (srcPos == dstPos){
+			println("Got a flow from " + srcPos + " to self, amt:" + amt);
+			return;
+		}
+
 		if (srcPos == -1){
 			srcAddr = null;
 		} else {
@@ -79,7 +84,7 @@ class Manager{
 
 	void display(){
 		int currentTime = millis();
-		if ((currentTime - startTime) % flowTime > currentBlockIndex){
+		if ((currentTime - startTime) / flowTime > currentBlockIndex){
 			addBlock();
 		}
 

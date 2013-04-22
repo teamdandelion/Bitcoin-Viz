@@ -237,7 +237,8 @@ def main():
 
 	BP = BitcoinProcessor(RAW_DATAFILE, PROCCESSED_DATAFILE)
 	
-	BP.write_xml(MY_ADDR, XMLFILE, 4)
+	BP.write_xml(MY_ADDR, XMLFILE, 5)
+	print BP.positions[380]
 
 if __name__ == '__main__':
 	main()
