@@ -3,6 +3,8 @@ import processing.data.*;
 import processing.event.*; 
 import processing.opengl.*; 
 
+import java.util.Arrays; 
+
 import java.util.HashMap; 
 import java.util.ArrayList; 
 import java.io.File; 
@@ -74,9 +76,13 @@ public int size2color(int bitcoins){
 }
 
 public float size2radius(int bitcoins){
-    // A = pi * r ^ 2
-    // r = sqrt(A / pi)
-    return sqrt(bitcoins / PI);
+    if (bitcoins <= 0){
+        return 0;
+    } else {
+        // A = pi * r ^ 2
+        // r = sqrt(A / pi)
+        return sqrt(bitcoins / PI);
+    }
 }
 
 public void drawCircle(XYCoord xy, float radius, int c){
@@ -86,7 +92,7 @@ public void drawCircle(XYCoord xy, float radius, int c){
 
 }
 
-class Address {
+class Address implements Comparable<Address>{
     int currentBitcoins;
     int position;
     XYCoord loc;
@@ -95,6 +101,16 @@ class Address {
         position = pos;
         currentBitcoins = 0;
         loc = position2XY(position);
+    }
+
+    public int compareTo(Address b){
+        // bigger addresses are lower
+        int diff = b.getBalance() - currentBitcoins;
+        if (diff != 0){
+            return diff;
+        } else {
+            return position - b.getPosition();
+        }
     }
 
     public XYCoord getXY(){
@@ -112,6 +128,14 @@ class Address {
         }
         return currentBitcoins;
 
+    }
+
+    public int getBalance(){
+        return currentBitcoins;
+    }
+
+    public int getPosition(){
+        return position;
     }
 
     public void display(){
@@ -315,6 +339,8 @@ class Flow {
 
 };
 
+
+
 class Manager{
 	int numAddrs;
 	int numBlocks;
@@ -325,6 +351,7 @@ class Manager{
 	int flowTime = 500;
 	int currentBlockIndex = 0;
 	int startTime;
+
 
 
 	Manager(XML bitcoinXML){
@@ -362,6 +389,7 @@ class Manager{
 		println("Allocated blocks");
 
 		flows  = new ArrayList();	
+
 		println("Finished manager setup");
 		startTime = millis();
 	}
@@ -414,9 +442,12 @@ class Manager{
 			addBlock();
 		}
 
+		Arrays.sort(addrs);
 		for (int i=0; i<numAddrs; i++){
 		    addrs[i].display();
+		    print(addrs[i].getBalance() + ",");
 		}
+		println();
 
 		for (int i=flows.size()-1; i>=0; i--){
 		    Flow flow = (Flow) flows.get(i);
@@ -426,9 +457,8 @@ class Manager{
 		    }
 		}
 	}
-
-
 };
+
 
 class XYCoord{
     float x, y;

@@ -1,5 +1,5 @@
 
-class Address {
+class Address implements Comparable<Address>{
     int currentBitcoins;
     int position;
     XYCoord loc;
@@ -8,6 +8,16 @@ class Address {
         position = pos;
         currentBitcoins = 0;
         loc = position2XY(position);
+    }
+
+    int compareTo(Address b){
+        // bigger addresses are lower
+        int diff = b.getBalance() - currentBitcoins;
+        if (diff != 0){
+            return diff;
+        } else {
+            return position - b.getPosition();
+        }
     }
 
     XYCoord getXY(){
@@ -25,6 +35,14 @@ class Address {
         }
         return currentBitcoins;
 
+    }
+
+    int getBalance(){
+        return currentBitcoins;
+    }
+
+    int getPosition(){
+        return position;
     }
 
     void display(){

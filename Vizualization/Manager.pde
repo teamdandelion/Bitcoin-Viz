@@ -1,3 +1,5 @@
+import java.util.Arrays;
+
 class Manager{
 	int numAddrs;
 	int numBlocks;
@@ -8,6 +10,7 @@ class Manager{
 	int flowTime = 500;
 	int currentBlockIndex = 0;
 	int startTime;
+
 
 
 	Manager(XML bitcoinXML){
@@ -45,6 +48,7 @@ class Manager{
 		println("Allocated blocks");
 
 		flows  = new ArrayList();	
+
 		println("Finished manager setup");
 		startTime = millis();
 	}
@@ -97,9 +101,12 @@ class Manager{
 			addBlock();
 		}
 
+		Arrays.sort(addrs);
 		for (int i=0; i<numAddrs; i++){
 		    addrs[i].display();
+		    print(addrs[i].getBalance() + ",");
 		}
+		println();
 
 		for (int i=flows.size()-1; i>=0; i--){
 		    Flow flow = (Flow) flows.get(i);
@@ -109,6 +116,5 @@ class Manager{
 		    }
 		}
 	}
-
-
 };
+

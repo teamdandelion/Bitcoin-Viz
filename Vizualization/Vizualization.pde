@@ -58,9 +58,13 @@ color size2color(int bitcoins){
 }
 
 float size2radius(int bitcoins){
-    // A = pi * r ^ 2
-    // r = sqrt(A / pi)
-    return sqrt(bitcoins / PI);
+    if (bitcoins <= 0){
+        return 0;
+    } else {
+        // A = pi * r ^ 2
+        // r = sqrt(A / pi)
+        return sqrt(bitcoins / PI);
+    }
 }
 
 void drawCircle(XYCoord xy, float radius, color c){
