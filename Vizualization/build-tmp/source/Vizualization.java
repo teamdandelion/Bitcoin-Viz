@@ -14,27 +14,43 @@ import java.io.IOException;
 
 public class Vizualization extends PApplet {
 
-Address a1, a2, a3;
-Flow f;
-
+Address[] addresses;
+ArrayList flows;
+int numAddresses;
 
 public void setup(){
   size(800, 800);
   noStroke();
-  a1 = new Address(0);
-  a2 = new Address(1);
-  a3 = new Address(2);
-  f = new Flow(a1, a2, 30, 5000);
+  numAddresses = 30;
+
+  frameRate(100);
+  addresses = new Address[numAddresses];
+  flows = new ArrayList();
+  for (int i=0; i<numAddresses; i++){
+    addresses[i] = new Address(i);
+  }
+
+  Flow firstFlow = new Flow(addresses[17], 30, 5000);
+  Flow secondFlow = new Flow(addresses[13], 80, 5000);
+  flows.add(firstFlow);
+  flows.add(secondFlow);
 
 };
 
 public void draw(){
   translate(20,20);
   background(155);
-  a1.display();
-  a2.display();
-  a3.display();
-  f.display();
+  for (int i=0; i<numAddresses; i++){
+    addresses[i].display();
+  }
+
+  for (int i=flows.size()-1; i>=0; i--){
+    Flow flow = (Flow) flows.get(i);
+    flow.display();
+    if (flow.isFinished()){
+      flows.remove(i);
+    }
+  }
 };
 
 // ============== ============== ============== ============== \\
@@ -78,16 +94,24 @@ class XYCoord{
 // ============== ============== ============== ============== \\
 
 class Flow {
-  Address source, destination;
+  Address destination;
   XYCoord sourceXY, destinationXY;
-  float currentX, currentY;
   int amount;
   int travelTime;  // in miliseconds
   int startTime; // in miliseconds
+  boolean finished;
 
+  Flow (Address destination, int amount, int travelTime){
+    this.destination = destination;
+    this.amount = amount;
+    this.travelTime = travelTime;
+    startTime = millis();
+    sourceXY = new XYCoord(600.0f,600.0f);
+    destinationXY = destination.getXY();
+    finished = false;
+  }
 
   Flow(Address source, Address destination, int amount, int travelTime){
-    this.source = source;
     this.destination = destination;
     this.amount = amount;
     this.travelTime = travelTime;
@@ -96,18 +120,24 @@ class Flow {
     destinationXY = destination.getXY();
 
     source.subtractBitcoins(amount);
+    finished = false;
   }
 
-  public Boolean display(){
+  public void display(){
     int curtime = millis();
-    if (curtime > travelTime + startTime){
-      // Flow is finished
-      destination.addBitcoins(amount);
-      return true;
-    } else {
-      drawFlow(curtime);
-      return false;
+    if (!finished){
+      if (curtime > travelTime + startTime){
+        // Flow is finished
+        destination.addBitcoins(amount);
+        finished = true;
+      } else {
+        drawFlow(curtime);
+      }
     }
+  }
+
+  public boolean isFinished(){
+    return finished;
   }
 
   public void drawFlow(int currentTime){
@@ -175,7 +205,7 @@ public int size2color(int bitcoins){
 }
 
 public float size2radius(int bitcoins){
-  return 10.0f + bitcoins / 20;
+  return 1.0f + bitcoins / 20;
 }
 
 public void drawCircle(XYCoord xy, float radius, int c){
