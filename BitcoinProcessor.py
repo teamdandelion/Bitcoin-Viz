@@ -29,7 +29,7 @@ import cPickle as pickle
 import os, operator, BitcoinParsers
 from lxml import etree
 
-HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz/Data/"
+HOMEDIR = "/Users/danmane/Dropbox/Code/Github/Bitcoin-Viz/Vizualization/data/"
 MY_ADDR = "1FEdnu7NYNc6pjaFLvci57aQ6WFbXDJus7"
 
 
@@ -162,7 +162,7 @@ class BitcoinProcessor:
 		numAddrs = len(self.addr2position)
 		numBlocks = len(blocks)
 
-		root = etree.Element("BitcoinXML", NumAddrs=str(numAddrs), numBlocks=str(numBlocks))
+		root = etree.Element("BitcoinXML", NumAddrs=str(numAddrs), NumBlocks=str(numBlocks))
 
 		self.txID = 0 # Transaction ID is globally unique for the xml, i.e. not block specific
 
@@ -196,8 +196,8 @@ class BitcoinProcessor:
 			num_inputs  = str(len(tx_dict["inputs" ]))
 			num_outputs = str(len(tx_dict["outputs"]))
 
-			total_in  = str(tx_dict["total_in" ])
-			total_out = str(tx_dict["total_out"])
+			total_in  = str(tx_dict["total_in" ] / 1000000)
+			total_out = str(tx_dict["total_out"] / 1000000)
 
 			in_elem = etree.SubElement(tx_elem, "Inputs", \
 						Num=num_inputs, Total=total_in)
@@ -218,7 +218,7 @@ class BitcoinProcessor:
 			position = -1
 			# -1 signifies out-of-network
 
-		flowE = etree.SubElement(parent, "Flow", Position=str(position), Amt=str(amount))
+		flowE = etree.SubElement(parent, "Flow", Position=str(position), Amt=str(amount / 1000000))
 		# posE = etree.SubElement(flowE, "Position")
 		# posE.text = str(position)
 
@@ -237,7 +237,7 @@ def main():
 
 	BP = BitcoinProcessor(RAW_DATAFILE, PROCCESSED_DATAFILE)
 	
-	BP.write_xml(MY_ADDR, XMLFILE, 2)
+	BP.write_xml(MY_ADDR, XMLFILE, 4)
 
 if __name__ == '__main__':
 	main()

@@ -7,7 +7,7 @@ class Block{
     Block(Manager myManager, XML blockXML){
         this.myManager = myManager;
 
-        XML[] transactionXMLs = blockXML.getChildren();
+        XML[] transactionXMLs = blockXML.getChildren("Transaction");
         numTransactions = blockXML.getInt("Transactions");
 
         txs = new Transaction[numTransactions];
@@ -35,12 +35,13 @@ class Transaction{
         XML inputs, outputs;
 
         String genStr = transactionXML.getString("Generative");
-        if (genStr == "True"){
+        if (genStr.equals("True")){
             isGenerative = true;
-        } else if (genStr == "False"){
+        } else if (genStr.equals("False")){
             isGenerative = false;
         } else {
-            assert 0
+            println("|" + genStr + "|");
+            assert false;
         }
 
         inputs  = transactionXML.getChild("Inputs");
@@ -50,14 +51,19 @@ class Transaction{
         numOutputs = outputs.getInt("Num");
         totalOut   = outputs.getInt("Total");
 
-        inFlows  = inputs.getChildren();
-        outFlows = outputs.getChildren();
+        XML[] inFlows  = inputs.getChildren("Flow");
+        XML[] outFlows = outputs.getChildren("Flow");
 
+        inputPositions = new int[numInputs];
+        inputAmounts   = new int[numInputs];
+
+        outputPositions = new int[numOutputs];
+        outputAmounts   = new int[numOutputs];
 
         for (int i=0; i<numInputs; i++){
             XML flow = inFlows[i];
             int pos = flow.getInt("Position");
-            int amt = flow.getInt("Amount");
+            int amt = flow.getInt("Amt");
             inputPositions[i] = pos;
             inputAmounts[i]   = amt;
         }
@@ -65,11 +71,10 @@ class Transaction{
         for (int i=0; i<numOutputs; i++){
             XML flow = outFlows[i];
             int pos = flow.getInt("Position");
-            int amt = flow.getInt("Amount");
+            int amt = flow.getInt("Amt");
             outputPositions[i] = pos;
             outputAmounts[i]   = amt;
         }
-
     }
 
 
@@ -79,12 +84,12 @@ class Transaction{
             // I think generative trx have only one output
             // But let's iterate over the list to be safe
             for (int i=0; i<numOutputs; i++){
-                outPos = outputPositions[i]
-                outAmt = outputAmounts[i]
+                outPos = outputPositions[i];
+                outAmt = outputAmounts[i];
                 myManager.addBitcoins(outPos, outAmt);
             }
         } else {
-            sendNormalFlows(myManager);
+            addNormalFlows(myManager);
         }
     }
 
@@ -96,15 +101,15 @@ class Transaction{
         int srcPos, dstPos;
         float p;
 
-        for (int i=0; i<numInputs, i++){
+        for (int i=0; i<numInputs; i++){
             amt = inputAmounts[i];
-            srcPos = inputPositions[i]
+            srcPos = inputPositions[i];
             for (int j=0; j<numOutputs; j++){
                 p = (float) outputAmounts[j] / totalOut;
                 outAmt = (int) (amt * p);
-                dstPos = outputPositions[j]
+                dstPos = outputPositions[j];
 
-                myManager.addFlow(srcPos, dstPos, outAmt)
+                myManager.addFlow(srcPos, dstPos, outAmt);
             }
         }
     }

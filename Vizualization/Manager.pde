@@ -11,28 +11,44 @@ class Manager{
 
 
 	Manager(XML bitcoinXML){
-		numAddrs  = bitcoinXML.getInt("NumAddrs" );
+		numAddrs  = bitcoinXML.getInt("NumAddrs");
+		print("Num addrs is: " + numAddrs);
+
 		addrs  = new Address[numAddrs];
 		for (int i=0; i<numAddrs; i++){
 		    addrs[i] = new Address(i);
 		}
 
-		blockXMLs = bitcoinXML.getChildren();
-		numBlocks = blockXMLs.length;
+		println("Allocated addrs");
+
+		numBlocks = bitcoinXML.getInt("NumBlocks");
+		println("Got NumBlocks: " + numBlocks);
+
+		blockXMLs = bitcoinXML.getChildren("Block");
+		println("Got blockXMLs, len:" + blockXMLs.length);
+
 		blocks = new Block[numBlocks];
 		for (int i=0; i<numBlocks; i++){
+			println("i=" + i);
 			blocks[i] = new Block(this, blockXMLs[i]);
 		}
 
+		println("Allocated blocks");
+
 		flows  = new ArrayList();	
+		println("Finished manager setup");
+		startTime = millis();
 	}
 
 	void addBlock(){
-		blocks[currentBlockIndex].addFlows();
-		currentBlockIndex++;
+		if (currentBlockIndex<numBlocks){
+			blocks[currentBlockIndex].addFlows();
+			currentBlockIndex++;			
+		}
+
 	}
 
-	void giveBitcoins(int pos, int amt){
+	void addBitcoins(int pos, int amt){
 		if (pos != -1){
 			addrs[pos].addBitcoins(amt);
 		}
@@ -40,6 +56,11 @@ class Manager{
 
 	void addFlow(int srcPos, int dstPos, int amt){
 		Address srcAddr, dstAddr;
+		if (srcPos == -1 && dstPos == -1){
+			return; // No need to add the flow, its between
+			// out of network 
+		}
+
 		if (srcPos == -1){
 			srcAddr = null;
 		} else {
@@ -57,13 +78,18 @@ class Manager{
 	}
 
 	void display(){
-		for (int i=0; i<numAddresses; i++){
-		    addresses[i].display();
+		int currentTime = millis();
+		if ((currentTime - startTime) % flowTime > currentBlockIndex){
+			addBlock();
+		}
+
+		for (int i=0; i<numAddrs; i++){
+		    addrs[i].display();
 		}
 
 		for (int i=flows.size()-1; i>=0; i--){
 		    Flow flow = (Flow) flows.get(i);
-		    flow.display();
+		    flow.display(currentTime);
 		    if (flow.isFinished()){
 		        flows.remove(i);
 		    }
@@ -71,4 +97,4 @@ class Manager{
 	}
 
 
-}
+};

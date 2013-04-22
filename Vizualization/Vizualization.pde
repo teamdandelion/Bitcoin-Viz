@@ -1,17 +1,35 @@
 Manager myManager;
 XML myXML;
 
-int XBOUND = 1600;
-int YBOUND = 1600;
-int RADIUS = 750;
+int XBOUND = 800;
+int YBOUND = 800;
+int RADIUS = 360;
+int N_CIRCLES = 80;
+// The spiral code taken from a Processing.js example by 
+// Jim Bumgardner
+// http://krazydad.com/tutorials/circles_js/showexample.php?ex=phyllo_equal
 
-XYCoord CENTERPOINT = XYCoord(XBOUND/2, YBOUND/2);
+float PHI = (sqrt(5) + 1)/2 -1;
+float GOLDEN_ANGLE = PHI * TWO_PI;
+float LG_AREA = sq(RADIUS) * PI;
+float SM_AREA = LG_AREA / N_CIRCLES;
+float SM_RAD  = sqrt(SM_AREA / PI) * 2 * 0.87;
+float CX = XBOUND / 2.0;
+float CY = YBOUND / 2.0;
+
+
+
+XYCoord CENTERPOINT = new XYCoord(CX, CY);
 
 
 void setup(){
-    size(800, 800);
+    println("Starting setup");
+    size(XBOUND, YBOUND);
     noStroke();
-    myXML = loadXML("bitcoins.xml");
+    println("Loading XML");
+    myXML = loadXML("transactions.xml");
+    //println(myXML);
+    println("Got XML; starting manager init");
     myManager = new Manager(myXML);
 
 };
@@ -25,13 +43,14 @@ void draw(){
 
 
 XYCoord position2XY(int position){
-    int gridWidth = 6;
-    int gridSize = 40;
+    int pos = position + 1;
+    float angle = pos * GOLDEN_ANGLE;
+    float cum_area = pos * SM_AREA;
+    float spiral_rad = sqrt(cum_area / PI);
+    float x = CX + cos(angle) * spiral_rad;
+    float y = CY + sin(angle) * spiral_rad;
 
-    int x, y;
-    x = position % gridWidth;
-    y = position / gridWidth;
-    return new XYCoord(x * gridSize, y*gridSize);
+    return new XYCoord(x, y);
 }
 
 color size2color(int bitcoins){
@@ -39,10 +58,12 @@ color size2color(int bitcoins){
 }
 
 float size2radius(int bitcoins){
-    return 1.0 + bitcoins / 20;
+    return 1.0 + sqrt(bitcoins) / 10;
 }
 
 void drawCircle(XYCoord xy, float radius, color c){
     fill(c);
     ellipse(xy.getX(), xy.getY(), radius*2, radius*2);
+
+
 }

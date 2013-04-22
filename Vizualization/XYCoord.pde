@@ -47,7 +47,7 @@ class XYCoord{
 
     XYCoord getRadialXY(){
         XYCoord uv = this.getUnitVector();
-        return uv.multiply(RADIUS).add(CENTERPOINT);
+        return uv.multiply(RADIUS+100).add(CENTERPOINT);
     }
 
 };

@@ -32,18 +32,17 @@ class Flow {
         finished = false;
     }
 
-    void display(){
-        int curtime = millis();
+    void display(int currentTime){
         if (!finished){
-            if (curtime > travelTime + startTime){
+            if (currentTime > travelTime + startTime){
                 // Flow is finished
                 if (destination != null){
                     destination.addBitcoins(amount);
                 }
-                
+
                 finished = true;
             } else {
-                drawFlow(curtime);
+                drawFlow(currentTime);
             }
         }
     }
