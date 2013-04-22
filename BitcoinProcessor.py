@@ -159,7 +159,10 @@ class BitcoinProcessor:
 		blocks = self.build_blocks()
 		sortedblocks = sorted(blocks.iteritems(), key=operator.itemgetter(0))
 
-		root = etree.Element("BitcoinXML")
+		numAddrs = len(self.addr2position)
+		numBlocks = len(blocks)
+
+		root = etree.Element("BitcoinXML", NumAddrs=str(numAddrs), numBlocks=str(numBlocks))
 
 		self.txID = 0 # Transaction ID is globally unique for the xml, i.e. not block specific
 
