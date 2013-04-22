@@ -6,7 +6,14 @@ class Block{
     
     Block(Manager myManager, XML blockXML){
         this.myManager = myManager;
-        //TODO: Implement this...
+
+        XML[] transactionXMLs = blockXML.getChildren();
+        numTransactions = blockXML.getInt("Transactions");
+
+        txs = new Transaction[numTransactions];
+        for (int i=0; i<numTransactions; i++){
+            txs[i] = new Transaction(transactionXMLs[i]);
+        }
     }
 
     void addFlows(){
@@ -25,7 +32,44 @@ class Transaction{
     boolean isGenerative;
 
     Transaction(XML transactionXML){
-        //T
+        XML inputs, outputs;
+
+        String genStr = transactionXML.getString("Generative");
+        if (genStr == "True"){
+            isGenerative = true;
+        } else if (genStr == "False"){
+            isGenerative = false;
+        } else {
+            assert 0
+        }
+
+        inputs  = transactionXML.getChild("Inputs");
+        outputs = transactionXML.getChild("Outputs");
+
+        numInputs  = inputs.getInt("Num");
+        numOutputs = outputs.getInt("Num");
+        totalOut   = outputs.getInt("Total");
+
+        inFlows  = inputs.getChildren();
+        outFlows = outputs.getChildren();
+
+
+        for (int i=0; i<numInputs; i++){
+            XML flow = inFlows[i];
+            int pos = flow.getInt("Position");
+            int amt = flow.getInt("Amount");
+            inputPositions[i] = pos;
+            inputAmounts[i]   = amt;
+        }
+
+        for (int i=0; i<numOutputs; i++){
+            XML flow = outFlows[i];
+            int pos = flow.getInt("Position");
+            int amt = flow.getInt("Amount");
+            outputPositions[i] = pos;
+            outputAmounts[i]   = amt;
+        }
+
     }
 
 

@@ -1,20 +1,30 @@
 class Manager{
 	int numAddrs;
+	int numBlocks;
 	Address[] addrs;
 	ArrayList flows;
 	Block[] blocks;
+	XML[] blockXMLs;
 	int flowTime = 3000;
 	int currentBlockIndex = 0;
+	int startTime;
 
 
 	Manager(XML bitcoinXML){
-		addrs = new Address[numAddrs];
-		flows = new ArrayList();
+		numAddrs  = bitcoinXML.getInt("NumAddrs" );
+		addrs  = new Address[numAddrs];
 		for (int i=0; i<numAddrs; i++){
 		    addrs[i] = new Address(i);
 		}
 
-		//TODO: Add the blocks!
+		blockXMLs = bitcoinXML.getChildren();
+		numBlocks = blockXMLs.length;
+		blocks = new Block[numBlocks];
+		for (int i=0; i<numBlocks; i++){
+			blocks[i] = new Block(this, blockXMLs[i]);
+		}
+
+		flows  = new ArrayList();	
 	}
 
 	void addBlock(){
