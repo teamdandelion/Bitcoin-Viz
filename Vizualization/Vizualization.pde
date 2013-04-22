@@ -1,6 +1,13 @@
 Manager myManager;
 XML myXML;
 
+int XBOUND = 1600;
+int YBOUND = 1600;
+int RADIUS = 750;
+
+XYCoord CENTERPOINT = XYCoord(XBOUND/2, YBOUND/2);
+
+
 void setup(){
     size(800, 800);
     noStroke();

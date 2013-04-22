@@ -29,13 +29,20 @@ class Manager{
 	}
 
 	void addFlow(int srcPos, int dstPos, int amt){
-		// need to handle -1 case
-		Flow newFlow = new Flow(addrs[srcPos], addrs[dstPos], amt, flowTime);
-		flows.add(newFlow);
-	}
+		Address srcAddr, dstAddr;
+		if (srcPos == -1){
+			srcAddr = null;
+		} else {
+			srcAddr = addrs[srcPos];
+		}
 
-	void addFlow(int dstPos, int amt){
-		Flow newFlow = new Flow(addrs[dstPos], amt, flowTime);
+		if (dstPos == -1){
+			dstAddr = null;
+		} else {
+			dstAddr = addrs[dstPos];
+		}
+
+		Flow newFlow = new Flow(srcAddr, dstAddr, amt, flowTime);
 		flows.add(newFlow);
 	}
 

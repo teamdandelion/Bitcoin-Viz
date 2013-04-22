@@ -7,25 +7,28 @@ class Flow {
     int startTime; // in miliseconds
     boolean finished;
 
-    Flow (Address destination, int amount, int travelTime){
-        this.destination = destination;
-        this.amount = amount;
-        this.travelTime = travelTime;
-        startTime = millis();
-        sourceXY = new XYCoord(600.0,600.0);
-        destinationXY = destination.getXY();
-        finished = false;
-    }
-
     Flow(Address source, Address destination, int amount, int travelTime){
         this.destination = destination;
         this.amount = amount;
         this.travelTime = travelTime;
         startTime = millis();
-        sourceXY = source.getXY();
-        destinationXY = destination.getXY();
+        
+        assert (source != null || destination != null);
 
-        source.subtractBitcoins(amount);
+        if (source == null){
+            destinationXY = destination.getXY();
+            sourceXY = destinationXY.getRadialXY();
+        } else if (destination == null){
+            sourceXY = source.getXY();
+            destinationXY = sourceXY.getRadialXY();
+        } else {
+            sourceXY = source.getXY();
+            destinationXY = destination.getXY();
+        }
+
+        if (source != null){
+            source.subtractBitcoins(amount);
+        }
         finished = false;
     }
 
@@ -34,7 +37,10 @@ class Flow {
         if (!finished){
             if (curtime > travelTime + startTime){
                 // Flow is finished
-                destination.addBitcoins(amount);
+                if (destination != null){
+                    destination.addBitcoins(amount);
+                }
+                
                 finished = true;
             } else {
                 drawFlow(curtime);
